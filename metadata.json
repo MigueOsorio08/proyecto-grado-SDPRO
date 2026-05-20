@@ -1,0 +1,6 @@
+{
+  "name": "SafeDrive",
+  "description": "A driver safety monitoring system featuring real-time metrics, live camera face tracking, critical incident logging, history archives, and user role management.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

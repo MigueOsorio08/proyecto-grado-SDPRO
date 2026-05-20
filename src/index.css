@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Work Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", "Work Sans", sans-serif;
+  
+  --color-brand-cream: #FDFAF5;
+  --color-brand-card: #F9F5EC;
+  --color-brand-divider: #F3EDD9;
+  --color-brand-border: #EDE6CE;
+  --color-brand-blue: #4A86C0;
+  --color-brand-blue-soft: #EBF2FA;
+  --color-brand-success: #5DAB7D;
+  --color-brand-success-soft: #EAF4EE;
+  --color-brand-warning: #D4893A;
+  --color-brand-warning-soft: #FEF4E8;
+  --color-brand-error: #C0514F;
+  --color-brand-error-soft: #FAEAEA;
+  --color-brand-text: #2C2A24;
+  --color-brand-text-muted: #706A5A;
+}
+
+body {
+  background-color: #FDFAF5;
+  color: #2C2A24;
+  font-family: var(--font-sans);
+}
