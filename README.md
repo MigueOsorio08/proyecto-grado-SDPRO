@@ -35,3 +35,60 @@ IncidentHistoryPage.tsx
 IncidentDetailPage.tsx
 SystemPerformancePage.tsx
 UserManagementPage.tsx
+
+# Flujo general del sistema
+Login
+  ↓
+Dashboard
+  ↓
+Registro de conductor y vehículo
+  ↓
+Contactos de emergencia
+  ↓
+Verificación de cámara
+  ↓
+Monitoreo activo
+  ↓
+Evento crítico
+  ↓
+Historial de incidentes
+  ↓
+Detalle del incidente
+
+
+#Tecnologías utilizadas
+
+* React
+* TypeScript
+* Vite
+* Tailwind CSS
+* Material Symbols Icons
+* Google Fonts
+
+#Estructura del proyecto
+
+safedrive/
+├── public/
+├── src/
+│   ├── assets/
+│   │   └── logo.svg
+│   ├── components/
+│   │   ├── CameraCheckPage.tsx
+│   │   ├── CriticalEventPage.tsx
+│   │   ├── DashboardPage.tsx
+│   │   ├── DriverRegistrationPage.tsx
+│   │   ├── EmergencyContactsPage.tsx
+│   │   ├── IncidentDetailPage.tsx
+│   │   ├── IncidentHistoryPage.tsx
+│   │   ├── LoginPage.tsx
+│   │   ├── SystemPerformancePage.tsx
+│   │   └── UserManagementPage.tsx
+│   ├── App.tsx
+│   ├── index.css
+│   ├── main.tsx
+│   ├── mockData.ts
+│   └── types.ts
+├── index.html
+├── package.json
+├── tsconfig.json
+└── vite.config.ts
