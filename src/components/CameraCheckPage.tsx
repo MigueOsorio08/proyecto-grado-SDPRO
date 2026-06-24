@@ -28,9 +28,6 @@ export default function CameraCheckPage() {
 
         <div className="flex items-center gap-4">
           <button className="material-symbols-outlined p-2 text-[#41474f] hover:bg-[#e7e8ed] transition-colors rounded-full">
-            notifications
-          </button>
-          <button className="material-symbols-outlined p-2 text-[#41474f] hover:bg-[#e7e8ed] transition-colors rounded-full">
             account_circle
           </button>
         </div>

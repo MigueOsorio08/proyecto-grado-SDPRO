@@ -11,6 +11,8 @@ import IncidentHistoryPage from "./components/IncidentHistoryPage";
 import IncidentDetailPage from "./components/IncidentDetailPage";
 import SystemPerformancePage from "./components/SystemPerformancePage";
 
+const AUTH_TOKEN_KEY = "safedrive_token";
+
 type Page =
   | "login"
   | "dashboard"
@@ -24,7 +26,6 @@ type Page =
   | "performance";
 
 const pages: { id: Page; label: string }[] = [
-  { id: "login", label: "Login" },
   { id: "dashboard", label: "Dashboard" },
   { id: "contacts", label: "Contactos emergencia" },
   { id: "driverRegistration", label: "Registro conductor" },
@@ -37,12 +38,33 @@ const pages: { id: Page; label: string }[] = [
 ];
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<Page>("login");
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return Boolean(localStorage.getItem(AUTH_TOKEN_KEY));
+  });
+
+  const [currentPage, setCurrentPage] = useState<Page>(() => {
+    return localStorage.getItem(AUTH_TOKEN_KEY) ? "dashboard" : "login";
+  });
+
+  function handleLoginSuccess(): void {
+    setIsAuthenticated(true);
+    setCurrentPage("dashboard");
+  }
+
+  function handleLogout(): void {
+    localStorage.removeItem("safedrive_token");
+    localStorage.removeItem("safedrive_user");
+
+    setIsAuthenticated(false);
+    setCurrentPage("login");
+  }
 
   const renderPage = () => {
+    if (!isAuthenticated) {
+      return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+    }
+
     switch (currentPage) {
-      case "login":
-        return <LoginPage />;
       case "dashboard":
         return <DashboardPage />;
       case "contacts":
@@ -62,13 +84,20 @@ export default function App() {
       case "performance":
         return <SystemPerformancePage />;
       default:
-        return <LoginPage />;
+        return <DashboardPage />;
     }
   };
 
   return (
     <>
-      <QuickNavigation currentPage={currentPage} onChangePage={setCurrentPage} />
+      {isAuthenticated && (
+        <QuickNavigation
+          currentPage={currentPage}
+          onChangePage={setCurrentPage}
+          onLogout={handleLogout}
+        />
+      )}
+
       {renderPage()}
     </>
   );
@@ -77,34 +106,77 @@ export default function App() {
 type QuickNavigationProps = {
   currentPage: Page;
   onChangePage: (page: Page) => void;
+  onLogout: () => void;
 };
 
-function QuickNavigation({ currentPage, onChangePage }: QuickNavigationProps) {
+function QuickNavigation({
+  currentPage,
+  onChangePage,
+  onLogout,
+}: QuickNavigationProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <div className="fixed left-4 bottom-4 z-[9999] bg-white border border-[#EDE6CE] rounded-xl shadow-xl p-3 max-w-[280px]">
-      <p className="text-xs font-bold text-[#706A5A] mb-2 tracking-wide">
-        Navegación rápida de todas las paginas
-      </p>
+    <div className="fixed left-4 bottom-4 z-[9999]">
+      {isOpen && (
+        <div className="mb-3 bg-white border border-[#EDE6CE] rounded-xl shadow-xl p-3 w-[260px] max-h-[420px]">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-bold text-[#706A5A] tracking-wide">
+              Navegación rápida
+            </p>
 
-      <div className="grid grid-cols-1 gap-2 max-h-[320px] overflow-y-auto">
-        {pages.map((page) => {
-          const isActive = currentPage === page.id;
-
-          return (
             <button
-              key={page.id}
-              onClick={() => onChangePage(page.id)}
-              className={`text-left px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
-                isActive
-                  ? "bg-[#4A86C0] text-white"
-                  : "bg-[#F9F5EC] text-[#2C2A24] hover:bg-[#EBF2FA] hover:text-[#195f97]"
-              }`}
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="material-symbols-outlined text-[#706A5A] hover:text-[#195f97] transition-colors text-[20px]"
             >
-              {page.label}
+              close
             </button>
-          );
-        })}
-      </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-1">
+            {pages.map((page) => {
+              const isActive = currentPage === page.id;
+
+              return (
+                <button
+                  key={page.id}
+                  onClick={() => {
+                    onChangePage(page.id);
+                    setIsOpen(false);
+                  }}
+                  className={`text-left px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    isActive
+                      ? "bg-[#4A86C0] text-white"
+                      : "bg-[#F9F5EC] text-[#2C2A24] hover:bg-[#EBF2FA] hover:text-[#195f97]"
+                  }`}
+                >
+                  {page.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={onLogout}
+            className="mt-3 w-full bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2 rounded-lg transition-all"
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setIsOpen((current) => !current)}
+        className="flex items-center justify-center w-12 h-12 rounded-full bg-[#195f97] text-white shadow-xl hover:bg-[#144d7b] active:scale-95 transition-all"
+        title="Abrir navegación rápida"
+      >
+        <span className="material-symbols-outlined">
+          {isOpen ? "close" : "menu"}
+        </span>
+      </button>
     </div>
   );
 }

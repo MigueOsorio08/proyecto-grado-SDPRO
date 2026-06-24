@@ -13,9 +13,6 @@ export default function DriverRegistrationPage() {
 
         <div className="flex items-center gap-4">
           <button className="material-symbols-outlined text-[#41474f] hover:bg-[#e7e8ed] transition-colors duration-200 p-2 rounded-full active:scale-95">
-            notifications
-          </button>
-          <button className="material-symbols-outlined text-[#41474f] hover:bg-[#e7e8ed] transition-colors duration-200 p-2 rounded-full active:scale-95">
             account_circle
           </button>
         </div>

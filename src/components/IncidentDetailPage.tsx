@@ -23,11 +23,6 @@ export default function IncidentDetailPage() {
         <div className="flex items-center gap-4">
           <button className="p-2 rounded-full hover:bg-[#e7e8ed] transition-colors duration-200 active:scale-95">
             <span className="material-symbols-outlined text-[#41474f]">
-              notifications
-            </span>
-          </button>
-          <button className="p-2 rounded-full hover:bg-[#e7e8ed] transition-colors duration-200 active:scale-95">
-            <span className="material-symbols-outlined text-[#41474f]">
               account_circle
             </span>
           </button>

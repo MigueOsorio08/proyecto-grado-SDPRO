@@ -22,9 +22,6 @@ export default function UserManagementPage() {
 
         <div className="flex items-center gap-4">
           <button className="material-symbols-outlined text-[#41474f] hover:bg-[#e7e8ed] p-2 rounded-full transition-all">
-            notifications
-          </button>
-          <button className="material-symbols-outlined text-[#41474f] hover:bg-[#e7e8ed] p-2 rounded-full transition-all">
             account_circle
           </button>
         </div>

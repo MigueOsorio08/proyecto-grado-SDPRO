@@ -1,203 +1,439 @@
-export default function EmergencyContactsPage() {
+import { useEffect, useState } from "react";
+
+type EmergencyContact = {
+  id: number;
+  name: string;
+  relationship: string | null;
+  phone: string;
+  email: string | null;
+  notification_channel: "email" | "sms" | "whatsapp";
+  is_primary: boolean;
+};
+
+type EmergencyContactsResponse = {
+  contacts: EmergencyContact[];
+};
+
+type EmergencyContactForm = {
+  name: string;
+  relationship: string;
+  phone: string;
+  email: string;
+  notification_channel: "email" | "sms" | "whatsapp";
+  is_primary: boolean;
+};
+
+const API_BASE_URL = (
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
+  "http://localhost:8000"
+).replace(/\/$/, "");
+
+const AUTH_TOKEN_KEY = "safedrive_token";
+
+const initialForm: EmergencyContactForm = {
+  name: "",
+  relationship: "",
+  phone: "",
+  email: "",
+  notification_channel: "email",
+  is_primary: false,
+};
+
+export default function EmergencyContactsPage(): React.JSX.Element {
+  const [contacts, setContacts] = useState<EmergencyContact[]>([]);
+  const [form, setForm] = useState<EmergencyContactForm>(initialForm);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    void loadContacts();
+  }, []);
+
+  async function request<T>(
+    path: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        ...(options.headers ?? {}),
+      },
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      const message =
+        data?.errors?.name?.[0] ??
+        data?.errors?.phone?.[0] ??
+        data?.errors?.email?.[0] ??
+        data?.message ??
+        "No fue posible completar la acción.";
+
+      throw new Error(message);
+    }
+
+    return data as T;
+  }
+
+  async function loadContacts(): Promise<void> {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const data = await request<EmergencyContactsResponse>(
+        "/api/emergency-contacts"
+      );
+
+      setContacts(data.contacts);
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "No fue posible cargar los contactos."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setIsSaving(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const data = await request<{
+        message: string;
+        contact: EmergencyContact;
+      }>("/api/emergency-contacts", {
+        method: "POST",
+        body: JSON.stringify(form),
+      });
+
+      setSuccessMessage(data.message);
+      setForm(initialForm);
+
+      await loadContacts();
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "No fue posible guardar el contacto."
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleMakePrimary(contact: EmergencyContact): Promise<void> {
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const data = await request<{
+        message: string;
+        contact: EmergencyContact;
+      }>(`/api/emergency-contacts/${contact.id}/primary`, {
+        method: "PATCH",
+      });
+
+      setSuccessMessage(data.message);
+
+      await loadContacts();
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "No fue posible actualizar el contacto principal."
+      );
+    }
+  }
+
+  async function handleDelete(contact: EmergencyContact): Promise<void> {
+    const confirmed = window.confirm(
+      `¿Eliminar a ${contact.name} como contacto de emergencia?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const data = await request<{ message: string }>(
+        `/api/emergency-contacts/${contact.id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      setSuccessMessage(data.message);
+
+      await loadContacts();
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "No fue posible eliminar el contacto."
+      );
+    }
+  }
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#FDFAF5] text-[#2C2A24] font-sans pb-24">
-      <header className="bg-white shadow-sm border-b border-[#e1e2e7] flex justify-between items-center w-full px-5 md:px-10 h-16 sticky top-0 z-40">
-        <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined text-[#4A86C0]">
-            shield_with_heart
-          </span>
-          <span className="text-[24px] font-bold text-[#4A86C0] tracking-tight">
-            SafeDrive
-          </span>
-        </div>
+    <div className="bg-[#FDFAF5] text-[#2C2A24] font-sans min-h-screen p-5 md:p-10">
+      <main className="max-w-6xl mx-auto space-y-8">
+        <header className="space-y-2">
+          <h1 className="text-[32px] font-bold text-[#195f97]">
+            Contactos de emergencia
+          </h1>
 
-        <div className="flex items-center gap-4">
-          <button className="material-symbols-outlined text-[#706A5A] hover:bg-[#F3EDD9] p-2 rounded-full transition-colors">
-            notifications
-          </button>
-          <button className="material-symbols-outlined text-[#706A5A] hover:bg-[#F3EDD9] p-2 rounded-full transition-colors">
-            account_circle
-          </button>
-        </div>
-      </header>
+          <p className="text-[#706A5A] text-[16px]">
+            Agrega las personas que serán notificadas si SafeDrive detecta una
+            alerta crítica durante una sesión de conducción.
+          </p>
+        </header>
 
-      <main className="flex-grow w-full max-w-2xl mx-auto px-5 mt-4">
-        <section className="bg-[#F9F5EC] border border-[#F3EDD9] rounded-xl p-4 mb-8 shadow-[0px_4px_20px_rgba(44,42,36,0.04)] flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full overflow-hidden bg-[#F3EDD9] flex-shrink-0">
-            <img
-              className="w-full h-full object-cover"
-              alt="Driver profile"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvJ9Pq5qf-IUOfaFPgPQ2hHXjM7TGz_R8ugN-DAcugjLoYu9ahhjeB8wSzZtv4fXnhnSxEe1ukMmgPKIq5mKy_kqO3mcG1-glVLA-6dXYSmSBRZkGxwZR6mr8pK5eNr5i17hj1rAK79IoUSCoag32dhhNDdxvhqsVCNMp_ffW6pgJRIp_bWFRulQJRVBZ62AOaqFeAZzBBpqxwxzBzBHHRgaqJ8Dw3wpzdp_XR2LNFoHNZCvuIYY0wgwlrYyb5eSnx9JK13hVskGLR"
-            />
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm font-medium">
+            {error}
           </div>
+        )}
 
-          <div className="flex-grow">
-            <h2 className="text-[18px] font-semibold text-[#2C2A24]">
-              Marcus Sterling
-            </h2>
-            <p className="text-[#706A5A] text-[14px] font-semibold">
-              Tesla Model 3 •{" "}
-              <span className="bg-[#F3EDD9] px-2 py-0.5 rounded text-xs">
-                ABC 1234
-              </span>
-            </p>
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 text-green-700 rounded-xl p-4 text-sm font-medium">
+            {successMessage}
           </div>
+        )}
 
-          <div className="hidden sm:block">
-            <span className="material-symbols-outlined text-[#4A86C0]">
-              verified_user
-            </span>
-          </div>
-        </section>
+        <section className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-8">
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white border border-[#F3EDD9] rounded-xl p-5 shadow-[0px_4px_20px_rgba(44,42,36,0.04)] space-y-4"
+          >
+            <div>
+              <h2 className="text-[24px] font-semibold text-[#2C2A24]">
+                Nuevo contacto
+              </h2>
+              <p className="text-sm text-[#706A5A]">
+                Este contacto recibirá alertas si ocurre una emergencia.
+              </p>
+            </div>
 
-        <section className="bg-white rounded-xl p-8 shadow-[0px_4px_20px_rgba(44,42,36,0.04)] border border-[#EDE6CE] mb-8">
-          <div className="mb-4">
-            <h3 className="text-[24px] font-semibold text-[#2C2A24]">
-              Register Emergency Contact
-            </h3>
-            <p className="text-[#706A5A] text-[14px] font-semibold">
-              Who should we notify in case of an emergency detection?
-            </p>
-          </div>
-
-          <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
             <div className="space-y-2">
-              <label className="text-[14px] font-semibold text-[#706A5A] ml-1">
-                Contact Full Name
+              <label className="text-sm font-semibold text-[#706A5A]">
+                Nombre completo
               </label>
               <input
-                className="w-full px-4 py-3 rounded-lg border border-[#EDE6CE] bg-white focus:border-[#4A86C0] focus:ring-1 focus:ring-[#4A86C0]/20 outline-none transition-all placeholder:text-[#c1c7d1]"
-                placeholder="e.g. Elena Sterling"
-                type="text"
+                className="w-full px-4 py-3 rounded-lg border border-[#EDE6CE] bg-white outline-none focus:ring-2 focus:ring-[#4A86C0]/20 focus:border-[#4A86C0]"
+                value={form.name}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    name: event.target.value,
+                  }))
+                }
+                placeholder="Ej: María Gómez"
+                required
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[14px] font-semibold text-[#706A5A] ml-1">
-                  Relationship
-                </label>
-                <input
-                  className="w-full px-4 py-3 rounded-lg border border-[#EDE6CE] bg-white focus:border-[#4A86C0] focus:ring-1 focus:ring-[#4A86C0]/20 outline-none transition-all placeholder:text-[#c1c7d1]"
-                  placeholder="e.g. Spouse"
-                  type="text"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[14px] font-semibold text-[#706A5A] ml-1">
-                  Phone Number
-                </label>
-                <input
-                  className="w-full px-4 py-3 rounded-lg border border-[#EDE6CE] bg-white focus:border-[#4A86C0] focus:ring-1 focus:ring-[#4A86C0]/20 outline-none transition-all placeholder:text-[#c1c7d1]"
-                  placeholder="+1 (555) 000-0000"
-                  type="tel"
-                />
-              </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-[#706A5A]">
+                Parentesco
+              </label>
+              <input
+                className="w-full px-4 py-3 rounded-lg border border-[#EDE6CE] bg-white outline-none focus:ring-2 focus:ring-[#4A86C0]/20 focus:border-[#4A86C0]"
+                value={form.relationship}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    relationship: event.target.value,
+                  }))
+                }
+                placeholder="Ej: Madre, hermano, pareja"
+              />
             </div>
 
             <div className="space-y-2">
-              <label className="text-[14px] font-semibold text-[#706A5A] ml-1">
-                Notification Channel
+              <label className="text-sm font-semibold text-[#706A5A]">
+                Teléfono
               </label>
-              <select className="w-full px-4 py-3 rounded-lg border border-[#EDE6CE] bg-white focus:border-[#4A86C0] focus:ring-1 focus:ring-[#4A86C0]/20 outline-none transition-all">
-                <option>WhatsApp</option>
-                <option>SMS</option>
-                <option>Email</option>
+              <input
+                className="w-full px-4 py-3 rounded-lg border border-[#EDE6CE] bg-white outline-none focus:ring-2 focus:ring-[#4A86C0]/20 focus:border-[#4A86C0]"
+                value={form.phone}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    phone: event.target.value,
+                  }))
+                }
+                placeholder="Ej: +57 300 000 0000"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-[#706A5A]">
+                Email
+              </label>
+              <input
+                className="w-full px-4 py-3 rounded-lg border border-[#EDE6CE] bg-white outline-none focus:ring-2 focus:ring-[#4A86C0]/20 focus:border-[#4A86C0]"
+                value={form.email}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    email: event.target.value,
+                  }))
+                }
+                placeholder="contacto@email.com"
+                type="email"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-[#706A5A]">
+                Canal preferido
+              </label>
+              <select
+                className="w-full px-4 py-3 rounded-lg border border-[#EDE6CE] bg-white outline-none focus:ring-2 focus:ring-[#4A86C0]/20 focus:border-[#4A86C0]"
+                value={form.notification_channel}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    notification_channel: event.target
+                      .value as EmergencyContactForm["notification_channel"],
+                  }))
+                }
+              >
+                <option value="email">Email</option>
+                <option value="sms">SMS</option>
+                <option value="whatsapp">WhatsApp</option>
               </select>
             </div>
 
-            <div className="pt-2">
-              <button
-                className="flex items-center gap-2 text-[#4A86C0] text-[14px] font-semibold border-2 border-[#4A86C0]/20 rounded-lg px-4 py-2 hover:bg-[#4A86C0]/5 transition-all active:scale-95"
-                type="button"
-              >
-                <span className="material-symbols-outlined text-lg">add</span>
-                Add another contact
-              </button>
-            </div>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.is_primary}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    is_primary: event.target.checked,
+                  }))
+                }
+                className="w-4 h-4 rounded border-[#c1c7d1] text-[#195f97]"
+              />
+              <span className="text-sm font-medium text-[#706A5A]">
+                Marcar como contacto principal
+              </span>
+            </label>
+
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="w-full bg-[#4A86C0] hover:bg-[#3d71a3] text-white text-sm font-semibold py-4 rounded-lg shadow-sm active:scale-[0.98] transition-all disabled:opacity-50"
+            >
+              {isSaving ? "Guardando..." : "Guardar contacto"}
+            </button>
           </form>
+
+          <section className="bg-white border border-[#F3EDD9] rounded-xl p-5 shadow-[0px_4px_20px_rgba(44,42,36,0.04)]">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-[24px] font-semibold text-[#2C2A24]">
+                  Contactos registrados
+                </h2>
+                <p className="text-sm text-[#706A5A]">
+                  El contacto principal será el primero en recibir alertas.
+                </p>
+              </div>
+
+              <span className="bg-[#EAF4EE] text-[#5DAB7D] px-3 py-1 rounded-full text-xs font-bold">
+                {contacts.length} contacto(s)
+              </span>
+            </div>
+
+            {isLoading ? (
+              <div className="p-4 bg-[#FDFAF5] border border-[#F3EDD9] rounded-lg text-[#706A5A]">
+                Cargando contactos...
+              </div>
+            ) : contacts.length === 0 ? (
+              <div className="p-4 bg-[#FDFAF5] border border-[#F3EDD9] rounded-lg text-[#706A5A]">
+                Aún no tienes contactos de emergencia.
+              </div>
+            ) : (
+              <ul className="space-y-3">
+                {contacts.map((contact) => (
+                  <li
+                    key={contact.id}
+                    className="p-4 bg-[#FDFAF5] border border-[#F3EDD9] rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[#4A86C0]">
+                          contact_emergency
+                        </span>
+
+                        <p className="font-semibold text-[#2C2A24]">
+                          {contact.name}
+                        </p>
+
+                        {contact.is_primary && (
+                          <span className="bg-[#EAF4EE] text-[#5DAB7D] px-2 py-0.5 rounded-full text-[11px] font-bold">
+                            Principal
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-sm text-[#706A5A]">
+                        {contact.relationship || "Sin parentesco"} •{" "}
+                        {contact.phone}
+                      </p>
+
+                      <p className="text-sm text-[#706A5A]">
+                        {contact.email || "Sin email"} • Canal:{" "}
+                        {contact.notification_channel}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {!contact.is_primary && (
+                        <button
+                          type="button"
+                          onClick={() => void handleMakePrimary(contact)}
+                          className="px-3 py-2 rounded-lg bg-[#EAF4EE] text-[#5DAB7D] text-xs font-bold hover:bg-[#dcefe4] transition-all"
+                        >
+                          Hacer principal
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => void handleDelete(contact)}
+                        className="px-3 py-2 rounded-lg bg-red-50 text-red-700 text-xs font-bold hover:bg-red-100 transition-all"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </section>
-
-        <section className="space-y-2">
-          <h4 className="text-[14px] font-semibold text-[#706A5A] uppercase tracking-wider px-1">
-            Registered Contacts
-          </h4>
-
-          <ContactCard
-            name="Sarah Connor"
-            info="Sister • SMS • +1 (234) 567-8901"
-          />
-
-          <ContactCard
-            name="John Doe"
-            info="Friend • WhatsApp • +1 (987) 654-3210"
-          />
-        </section>
-
-        <div className="mt-8 mb-8">
-          <button className="w-full bg-[#4A86C0] text-white py-4 rounded-xl text-[18px] font-semibold hover:brightness-95 shadow-lg active:scale-[0.98] transition-all">
-            Save contacts
-          </button>
-        </div>
       </main>
-
-      <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-3 bg-white border-t border-[#e1e2e7] shadow-lg rounded-t-xl">
-        <BottomNavItem icon="speed" label="Dashboard" />
-        <BottomNavItem icon="visibility_lock" label="Safety" />
-        <BottomNavItem icon="receipt_long" label="History" />
-
-        <a
-          className="flex flex-col items-center justify-center bg-[#a3f4c1] text-[#207249] rounded-full px-4 py-1"
-          href="#"
-        >
-          <span className="material-symbols-outlined">settings</span>
-          <span className="text-[12px] font-medium mt-1">Settings</span>
-        </a>
-      </nav>
     </div>
-  );
-}
-
-type ContactCardProps = {
-  name: string;
-  info: string;
-};
-
-function ContactCard({ name, info }: ContactCardProps) {
-  return (
-    <div className="bg-[#F9F5EC] border border-[#F3EDD9] rounded-xl p-4 shadow-[0px_4px_20px_rgba(44,42,36,0.04)] flex items-center justify-between group">
-      <div className="flex items-center gap-4">
-        <div className="w-10 h-10 rounded-full bg-[#4A86C0]/10 flex items-center justify-center text-[#4A86C0]">
-          <span className="material-symbols-outlined">person</span>
-        </div>
-
-        <div>
-          <p className="text-[14px] font-semibold text-[#2C2A24]">{name}</p>
-          <p className="text-xs text-[#706A5A]">{info}</p>
-        </div>
-      </div>
-
-      <button className="p-2 text-[#C0514F] hover:bg-[#FAEAEA] rounded-full transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
-        <span className="material-symbols-outlined">delete</span>
-      </button>
-    </div>
-  );
-}
-
-type BottomNavItemProps = {
-  icon: string;
-  label: string;
-};
-
-function BottomNavItem({ icon, label }: BottomNavItemProps) {
-  return (
-    <a
-      className="flex flex-col items-center justify-center text-[#706A5A] hover:text-[#4A86C0] transition-colors"
-      href="#"
-    >
-      <span className="material-symbols-outlined">{icon}</span>
-      <span className="text-[12px] font-medium mt-1">{label}</span>
-    </a>
   );
 }

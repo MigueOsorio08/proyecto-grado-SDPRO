@@ -25,9 +25,6 @@ export default function IncidentHistoryPage() {
 
         <div className="flex items-center gap-4">
           <button className="material-symbols-outlined text-[#41474f] p-2 rounded-full hover:bg-[#e7e8ed] transition-colors">
-            notifications
-          </button>
-          <button className="material-symbols-outlined text-[#41474f] p-2 rounded-full hover:bg-[#e7e8ed] transition-colors">
             account_circle
           </button>
         </div>

@@ -40,9 +40,6 @@ export default function CriticalEventPage() {
 
         <div className="flex items-center gap-4">
           <button className="material-symbols-outlined hover:bg-[#e7e8ed] transition-colors duration-200 p-2 rounded-full">
-            notifications
-          </button>
-          <button className="material-symbols-outlined hover:bg-[#e7e8ed] transition-colors duration-200 p-2 rounded-full">
             account_circle
           </button>
         </div>
